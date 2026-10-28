@@ -15,17 +15,25 @@ skinparam class {
   BackgroundColor #FFFFFF
   BorderColor #444444
 }
+skinparam note {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+}
+skinparam enum {
+  BackgroundColor #FFFFFF
+}
+hide circle
 skinparam package {
-  BackgroundColor #FAFAFA
+  BackgroundColor #FFFFFF
   BorderColor #999999
   FontStyle bold
 }
 hide empty members
 hide enum methods
-title Simulador de gestión de pistas de un aeropuerto — Diagrama de clases (Progreso 1)
+title Simulador de gestión de pistas de un aeropuerto: diagrama de clases (Progreso 1)
 
 package "modelo" {
-  class Aeronave #E3F2FD {
+  class Aeronave {
     - idVuelo : String
     - aerolinea : String
     - tipo : String
@@ -36,7 +44,7 @@ package "modelo" {
     + estaBajoUmbral(umbral : int, horaActual : int) : boolean
   }
 
-  abstract class Solicitud #E3F2FD {
+  abstract class Solicitud <<abstracta>> {
     - secuencia : long
     - aeronave : Aeronave
     - prioridad : Prioridad
@@ -49,17 +57,17 @@ package "modelo" {
     + compareTo(otra : Solicitud) : int
   }
 
-  class SolicitudAterrizaje #E3F2FD {
+  class SolicitudAterrizaje {
     + getTipo() : TipoOperacion
     + separacionRequerida(anterior : TipoOperacion) : int
   }
 
-  class SolicitudDespegue #E3F2FD {
+  class SolicitudDespegue {
     + getTipo() : TipoOperacion
     + separacionRequerida(anterior : TipoOperacion) : int
   }
 
-  class Pista #E8F5E9 {
+  class Pista {
     - id : int
     - estado : EstadoPista
     - operacionesPermitidas : Set<TipoOperacion>
@@ -74,7 +82,7 @@ package "modelo" {
     + reabrir() : void
   }
 
-  class Asignacion #FFF3E0 {
+  class Asignacion {
     - solicitud : Solicitud
     - pista : Pista
     - horaInicio : int
@@ -83,28 +91,28 @@ package "modelo" {
     + tiempoEsperado() : int
   }
 
-  class Alerta #FCE4EC {
+  class Alerta {
     - tipo : TipoAlerta
     - aeronave : Aeronave
     - hora : int
     - descripcion : String
   }
 
-  enum Prioridad {
+  enum Prioridad <<enumeración>> {
     EMERGENCIA
     COMBUSTIBLE_BAJO
     REGULAR
   }
-  enum TipoOperacion {
+  enum TipoOperacion <<enumeración>> {
     ATERRIZAJE
     DESPEGUE
   }
-  enum EstadoPista {
+  enum EstadoPista <<enumeración>> {
     LIBRE
     OCUPADA
     CERRADA
   }
-  enum TipoAlerta {
+  enum TipoAlerta <<enumeración>> {
     EMERGENCIA
     COMBUSTIBLE_BAJO
     ESPERA_EXCEDIDA
@@ -112,7 +120,7 @@ package "modelo" {
 }
 
 package "estructuras" {
-  class ColaPrioridad #FFF3E0 {
+  class ColaPrioridad {
     - heap : Solicitud[]
     - tamano : int
     + encolar(s : Solicitud) : void
@@ -126,7 +134,7 @@ package "estructuras" {
     - bajar(i : int) : void
   }
 
-  class "PilaHistorial<T>" as PilaHistorial #F3E5F5 {
+  class "PilaHistorial<T>" as PilaHistorial {
     - tope : Nodo<T>
     - tamano : int
     + apilar(dato : T) : void
@@ -138,7 +146,7 @@ package "estructuras" {
 }
 
 package "servicio" {
-  class Aeropuerto <<controlador>> #ECEFF1 {
+  class Aeropuerto <<controlador>> {
     - horaActual : int
     + recibirSolicitud(s : Solicitud) : void
     + asignarSiguiente() : Asignacion
@@ -146,7 +154,7 @@ package "servicio" {
     + aplicarEnvejecimiento() : void
   }
 
-  class RegistroSolicitudes #E3F2FD {
+  class RegistroSolicitudes {
     - aeronaves : Map<String, Aeronave>
     - activas : Map<String, Solicitud>
     + registrar(s : Solicitud) : boolean
@@ -156,7 +164,7 @@ package "servicio" {
     + clasificar(s : Solicitud, umbral : int) : Prioridad
   }
 
-  class ControlCombustible #FCE4EC {
+  class ControlCombustible {
     - umbralMinutos : int
     + declararEmergencia(s : Solicitud, motivo : String) : Alerta
     + actualizarCombustible(s : Solicitud, minutos : int, hora : int) : void
@@ -165,13 +173,13 @@ package "servicio" {
     + generarAlerta(tipo : TipoAlerta, a : Aeronave, hora : int) : Alerta
   }
 
-  class HistorialOperaciones #F3E5F5 {
+  class HistorialOperaciones {
     + registrar(a : Asignacion) : void
     + consultarUltimas(k : int) : List<Asignacion>
     + reportePorPista() : Map<Integer, Integer>
   }
 
-  class Estadisticas #F3E5F5 {
+  class Estadisticas {
     - totalOperaciones : int
     - sumaEspera : long
     - maxEspera : int
@@ -215,7 +223,7 @@ Pista ..> EstadoPista
 Alerta ..> TipoAlerta
 
 note right of Solicitud
-  <b>compareTo() — comparador compuesto</b>
+  <b>compareTo(): comparador compuesto</b>
   1. Prioridad (EMERGENCIA > COMBUSTIBLE_BAJO > REGULAR)
   2. En COMBUSTIBLE_BAJO: menor horaAgotamiento()
   3. Menor horaSolicitud (= mayor espera)

@@ -1,0 +1,226 @@
+@startuml diagrama-clases
+' Simulador de gestión de pistas de un aeropuerto - Programación III (UDLA)
+' Diagrama de clases preliminar - Progreso 1
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype polyline
+skinparam nodesep 70
+skinparam ranksep 80
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam dpi 140
+skinparam classFontStyle bold
+skinparam ArrowColor #333333
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+}
+skinparam package {
+  BackgroundColor #FAFAFA
+  BorderColor #999999
+  FontStyle bold
+}
+hide empty members
+hide enum methods
+title Simulador de gestión de pistas de un aeropuerto — Diagrama de clases (Progreso 1)
+
+package "modelo" {
+  class Aeronave #E3F2FD {
+    - idVuelo : String
+    - aerolinea : String
+    - tipo : String
+    - combustibleRestante : int
+    - horaReporteCombustible : int
+    + actualizarCombustible(minutos : int, hora : int) : void
+    + horaAgotamiento() : int
+    + estaBajoUmbral(umbral : int, horaActual : int) : boolean
+  }
+
+  abstract class Solicitud #E3F2FD {
+    - secuencia : long
+    - aeronave : Aeronave
+    - prioridad : Prioridad
+    - prioridadOriginal : Prioridad
+    - horaSolicitud : int
+    + {abstract} getTipo() : TipoOperacion
+    + {abstract} separacionRequerida(anterior : TipoOperacion) : int
+    + calcularEspera(horaActual : int) : int
+    + subirPrioridad(nueva : Prioridad) : void
+    + compareTo(otra : Solicitud) : int
+  }
+
+  class SolicitudAterrizaje #E3F2FD {
+    + getTipo() : TipoOperacion
+    + separacionRequerida(anterior : TipoOperacion) : int
+  }
+
+  class SolicitudDespegue #E3F2FD {
+    + getTipo() : TipoOperacion
+    + separacionRequerida(anterior : TipoOperacion) : int
+  }
+
+  class Pista #E8F5E9 {
+    - id : int
+    - estado : EstadoPista
+    - operacionesPermitidas : Set<TipoOperacion>
+    - ultimaOperacion : TipoOperacion
+    - horaUltimoInicio : int
+    - horaLiberacion : int
+    + estaDisponible(hora : int, s : Solicitud) : boolean
+    + horaDisponible(s : Solicitud) : int
+    + ocupar(a : Asignacion) : void
+    + liberar() : void
+    + cerrar() : void
+    + reabrir() : void
+  }
+
+  class Asignacion #FFF3E0 {
+    - solicitud : Solicitud
+    - pista : Pista
+    - horaInicio : int
+    - horaFin : int
+    + duracion() : int
+    + tiempoEsperado() : int
+  }
+
+  class Alerta #FCE4EC {
+    - tipo : TipoAlerta
+    - aeronave : Aeronave
+    - hora : int
+    - descripcion : String
+  }
+
+  enum Prioridad {
+    EMERGENCIA
+    COMBUSTIBLE_BAJO
+    REGULAR
+  }
+  enum TipoOperacion {
+    ATERRIZAJE
+    DESPEGUE
+  }
+  enum EstadoPista {
+    LIBRE
+    OCUPADA
+    CERRADA
+  }
+  enum TipoAlerta {
+    EMERGENCIA
+    COMBUSTIBLE_BAJO
+    ESPERA_EXCEDIDA
+  }
+}
+
+package "estructuras" {
+  class ColaPrioridad #FFF3E0 {
+    - heap : Solicitud[]
+    - tamano : int
+    + encolar(s : Solicitud) : void
+    + extraer() : Solicitud
+    + verSiguiente() : Solicitud
+    + reordenar(s : Solicitud) : void
+    + eliminar(s : Solicitud) : boolean
+    + tamano() : int
+    + estaVacia() : boolean
+    - subir(i : int) : void
+    - bajar(i : int) : void
+  }
+
+  class "PilaHistorial<T>" as PilaHistorial #F3E5F5 {
+    - tope : Nodo<T>
+    - tamano : int
+    + apilar(dato : T) : void
+    + desapilar() : T
+    + verTope() : T
+    + ultimos(k : int) : List<T>
+    + estaVacia() : boolean
+  }
+}
+
+package "servicio" {
+  class Aeropuerto <<controlador>> #ECEFF1 {
+    - horaActual : int
+    + recibirSolicitud(s : Solicitud) : void
+    + asignarSiguiente() : Asignacion
+    + avanzarTiempo(minutos : int) : void
+    + aplicarEnvejecimiento() : void
+  }
+
+  class RegistroSolicitudes #E3F2FD {
+    - aeronaves : Map<String, Aeronave>
+    - activas : Map<String, Solicitud>
+    + registrar(s : Solicitud) : boolean
+    + cancelar(idVuelo : String) : Solicitud
+    + buscarPorVuelo(idVuelo : String) : Solicitud
+    + filtrar(criterio : Predicate<Solicitud>) : List<Solicitud>
+    + clasificar(s : Solicitud, umbral : int) : Prioridad
+  }
+
+  class ControlCombustible #FCE4EC {
+    - umbralMinutos : int
+    + declararEmergencia(s : Solicitud, motivo : String) : Alerta
+    + actualizarCombustible(s : Solicitud, minutos : int, hora : int) : void
+    + detectarBajoUmbral(pendientes : List<Solicitud>, hora : int) : List<Solicitud>
+    + listarCriticos() : List<Solicitud>
+    + generarAlerta(tipo : TipoAlerta, a : Aeronave, hora : int) : Alerta
+  }
+
+  class HistorialOperaciones #F3E5F5 {
+    + registrar(a : Asignacion) : void
+    + consultarUltimas(k : int) : List<Asignacion>
+    + reportePorPista() : Map<Integer, Integer>
+  }
+
+  class Estadisticas #F3E5F5 {
+    - totalOperaciones : int
+    - sumaEspera : long
+    - maxEspera : int
+    - conteoPorPrioridad : Map<Prioridad, Integer>
+    + registrar(a : Asignacion) : void
+    + promedioEspera() : double
+    + reportePorPrioridad() : Map<Prioridad, Double>
+    + ordenarPorEspera(lista : List<Asignacion>) : List<Asignacion>
+  }
+}
+
+' ---------- Herencia ----------
+Solicitud <|-- SolicitudAterrizaje
+Solicitud <|-- SolicitudDespegue
+
+' ---------- Composición (el aeropuerto es dueño del ciclo de vida) ----------
+Aeropuerto "1" *-- "1..*" Pista : pistas
+Aeropuerto "1" *-- "1" ColaPrioridad : cola
+Aeropuerto "1" *-- "1" RegistroSolicitudes : registro
+Aeropuerto "1" *-- "1" ControlCombustible : control
+Aeropuerto "1" *-- "1" HistorialOperaciones : historial
+Aeropuerto "1" *-- "1" Estadisticas : estadisticas
+HistorialOperaciones "1" *-- "1" PilaHistorial : pila
+ControlCombustible "1" *-- "0..*" Alerta : alertas
+
+' ---------- Agregación (las partes existen por sí solas) ----------
+ColaPrioridad "1" o-- "0..*" Solicitud : pendientes
+RegistroSolicitudes "1" o-- "0..*" Aeronave
+PilaHistorial "1" o-- "0..*" Asignacion : completadas
+
+' ---------- Asociaciones ----------
+Aeronave "1" <-- "0..*" Solicitud : realizada por
+Asignacion "0..1" --> "1" Solicitud
+Asignacion "0..*" --> "1" Pista
+Alerta "0..*" --> "1" Aeronave
+
+' ---------- Dependencias con enumeraciones ----------
+Solicitud ..> Prioridad
+Solicitud ..> TipoOperacion
+Pista ..> EstadoPista
+Alerta ..> TipoAlerta
+
+note right of Solicitud
+  <b>compareTo() — comparador compuesto</b>
+  1. Prioridad (EMERGENCIA > COMBUSTIBLE_BAJO > REGULAR)
+  2. En COMBUSTIBLE_BAJO: menor horaAgotamiento()
+  3. Menor horaSolicitud (= mayor espera)
+  4. Menor secuencia (orden de llegada)
+  Todas las claves son fijas mientras la solicitud
+  está en el heap; si cambian, se llama reordenar().
+end note
+@enduml
